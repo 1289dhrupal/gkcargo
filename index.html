@@ -484,7 +484,7 @@
                     </div>
                     <h3 class="text-2xl font-bold text-gray-900 mb-2">Quote Request Sent!</h3>
                     <p class="text-gray-600">Thank you for considering GK Cargo Solutions. Our operations team will review your requirements and be in touch shortly.</p>
-                    <button onclick="document.getElementById('successMessage').classList.add('hidden'); document.getElementById('quoteForm').classList.remove('hidden'); document.getElementById('quoteForm').reset();" class="mt-8 text-brand-600 font-medium hover:text-brand-800 underline">Submit another request</button>
+                    <button onclick="document.getElementById('successMessage').classList.add('hidden'); document.getElementById('quoteForm').classList.remove('hidden'); document.getElementById('quoteForm').reset(); document.getElementById('collection-result').textContent = ''; document.getElementById('delivery-result').textContent = '';" class="mt-8 text-brand-600 font-medium hover:text-brand-800 underline">Submit another request</button>
                 </div>
             </div>
         </div>
@@ -599,6 +599,14 @@
 
             const formData = new FormData(form);
             const object = Object.fromEntries(formData);
+            
+            // Standardize inputs before sending
+            if (object.collection) object.collection = object.collection.toUpperCase().trim();
+            if (object.delivery) object.delivery = object.delivery.toUpperCase().trim();
+            if (object.email) object.email = object.email.toLowerCase().trim();
+            if (object.phone) object.phone = object.phone.trim().replace(/[^\d+]/g, ''); // Strip everything except numbers and +
+            if (object.name) object.name = object.name.trim();
+
             const json = JSON.stringify(object);
 
             fetch('https://api.web3forms.com/submit', {
@@ -684,12 +692,38 @@
 
         const collectionInput = document.getElementById('collection');
         const deliveryInput = document.getElementById('delivery');
+        const emailInput = document.getElementById('email');
+        const phoneInput = document.getElementById('phone');
+
+        // Visual Field Standardization on Blur (so user sees auto-correction)
+        const standardizeVisualInput = (input, type) => {
+            if (!input || !input.value) return;
+            
+            let val = input.value;
+            if (type === 'postcode') {
+                val = val.toUpperCase().replace(/\s+/g, ''); // Uppercase and NO spaces
+            } else if (type === 'email') {
+                val = val.toLowerCase().replace(/\s+/g, ''); // Lowercase and NO spaces
+            } else if (type === 'phone') {
+                val = val.replace(/[^\d+]/g, ''); // Keep only numbers and +
+            }
+            input.value = val;
+        };
+
+        if (emailInput) emailInput.addEventListener('blur', () => standardizeVisualInput(emailInput, 'email'));
+        if (phoneInput) phoneInput.addEventListener('blur', () => standardizeVisualInput(phoneInput, 'phone'));
         
         if (collectionInput) {
-            collectionInput.addEventListener('blur', () => lookupPostcode('collection', 'collection-result'));
+            collectionInput.addEventListener('blur', () => {
+                standardizeVisualInput(collectionInput, 'postcode');
+                lookupPostcode('collection', 'collection-result');
+            });
         }
         if (deliveryInput) {
-            deliveryInput.addEventListener('blur', () => lookupPostcode('delivery', 'delivery-result'));
+            deliveryInput.addEventListener('blur', () => {
+                standardizeVisualInput(deliveryInput, 'postcode');
+                lookupPostcode('delivery', 'delivery-result');
+            });
         }
     </script>
 
